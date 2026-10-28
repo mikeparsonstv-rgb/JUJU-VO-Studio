@@ -23,3 +23,5 @@ RendererBench/.analysis-models/
 
 # Job media library (set in Stage 1)
 Library/
+
+RendererBench/BenchAssets/rb006-local-assets.json
