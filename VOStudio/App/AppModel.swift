@@ -37,6 +37,16 @@ final class AppModel {
     var showNewFromSettings = false
     var repairNote: String?
     var peaks: [Float] = []
+    // Stage 2: voices and rendering
+    var voices: [VoiceSummary] = []
+    var showVoices = false
+    private(set) var renderer: RenderCoordinator?
+    private var qwen: QwenBenchActorEngine?
+    var engineStatus = "Voice engine not started"
+    var engineReady = false
+    var runs: [UUID: RenderRun] = [:]
+    var autoPlayNewTakes = true
+    var latestRenderNote: String?
     var isPlaying = false
     private var player: AVAudioPlayer?
     private var playbackStop: Task<Void, Never>?
@@ -83,7 +93,9 @@ final class AppModel {
                 repairNote = "Tidied \(report.removedTempFiles.count) unfinished write(s) from a previous session."
                     + (report.unreferencedTakeFiles.isEmpty ? "" : " \(report.unreferencedTakeFiles.count) take file(s) aren't in the database and were left untouched.")
             }
-            screen = .home; refreshJobs()
+            screen = .home; refreshJobs(); refreshVoices()
+            if report.interruptedRuns > 0 { repairNote = (repairNote ?? "") + " \(report.interruptedRuns) render(s) were interrupted when the app last closed." }
+            startEngines(lib)
             IncomingFiles.shared.attach { [weak self] urls in self?.handleIncoming(urls) }
         } catch {
             libraryError = "Couldn't open the library at \(url.path): \(error.localizedDescription)"
@@ -91,12 +103,99 @@ final class AppModel {
     }
 
     func refreshJobs() { jobs = (try? library?.recentJobs()) ?? [] }
+    func refreshVoices() { voices = (try? library?.voices()) ?? [] }
+
+    // MARK: Engines (Stage 2)
+
+    private func startEngines(_ lib: StudioLibrary) {
+        let rc = RenderCoordinator(library: lib)
+        renderer = rc
+        let engine = QwenBenchActorEngine(benchRoot: QwenBenchActorEngine.defaultBenchRoot)
+        qwen = engine
+        Task {
+            await rc.register(engine)
+            let stream = await rc.updates()
+            Task { @MainActor [weak self] in for await u in stream { self?.renderUpdate(u) } }
+            guard engine.isAvailable else { engineStatus = "Qwen not found — Renderer Bench folder missing"; return }
+            engineStatus = "Loading Qwen 0.6B…"
+            do { try await engine.warmUp(); engineReady = true; engineStatus = "Qwen 0.6B ready" }
+            catch { engineStatus = "Qwen failed to load: \(error.localizedDescription)" }
+        }
+    }
+
+    func shutdownEngines() async { await qwen?.shutdown() }
+
+    var canRender: Bool {
+        guard let d = desk, let b = d.bindings.first(where: { $0.id == selectedBindingID }) else { return false }
+        return voices.contains { $0.voice.id == b.voiceMasterID } && qwen?.isAvailable == true
+    }
+
+    var selectedActorIsPlaceholder: Bool {
+        guard let d = desk, let b = d.bindings.first(where: { $0.id == selectedBindingID }) else { return false }
+        return !voices.contains { $0.voice.id == b.voiceMasterID }
+    }
+
+    /// Queues a render of the selected line (or full read) with the selected actor; returns the queued run.
+    @discardableResult
+    func render(_ direction: PerformanceDirection = .init(), source: String = "manualText", segmentID: UUID?? = nil,
+                bindingID: UUID? = nil) async -> RenderRun? {
+        guard let library, let rc = renderer, let d = desk else { return nil }
+        guard let binding = bindingID ?? selectedBindingID else { errorMessage = "Cast a voice first."; return nil }
+        let seg = segmentID ?? selectedSegmentID
+        var eventID: UUID?
+        if !direction.isEmpty {
+            eventID = try? library.recordDirection(jobID: d.job.id, segmentIDs: seg.map { [$0] } ?? [],
+                                                   transcript: direction.note.isEmpty ? direction.variation.rawValue : direction.note,
+                                                   source: source, intent: direction, proposedAction: "render", confirmedAction: "render").id
+        }
+        do {
+            let q = try await rc.enqueue(jobID: d.job.id, actorBindingID: binding, segmentID: seg, engineID: "qwen3-bench",
+                                         direction: direction, directionEventID: eventID)
+            runs[q.id] = q
+            return q
+        } catch {
+            errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            return nil
+        }
+    }
+
+    private func renderUpdate(_ u: RenderUpdate) {
+        runs[u.run.id] = u.run
+        if u.run.state == "failed" { latestRenderNote = "Render failed: \(u.run.error ?? "unknown error")" }
+        guard u.run.jobID == desk?.job.id else { return }
+        if u.run.state == "succeeded", let take = u.take {
+            reloadDesk()
+            selectedSegmentID = take.segmentID; selectedBindingID = take.actorBindingID
+            select(take: take.id)
+            latestRenderNote = nil
+            if autoPlayNewTakes { Task { try? await Task.sleep(for: .milliseconds(250)); self.play() } }
+        }
+        onRenderUpdate?(u)
+    }
+
+    /// Hook for the Engineer (Stage 3).
+    var onRenderUpdate: ((RenderUpdate) -> Void)?
+
+    var activeRunsForDesk: [RenderRun] {
+        runs.values.filter { $0.jobID == desk?.job.id && !$0.isFinished }.sorted { $0.createdAt < $1.createdAt }
+    }
+
+    func castVoice(_ id: UUID) {
+        guard let library, let jobID = desk?.job.id else { return }
+        run { let b = try library.cast(voiceMasterID: id, into: jobID); self.reloadDesk(); self.selectedBindingID = b.id }
+    }
+
+    func addVoice(name: String, wav: URL, transcript: String, language: String, rights: String) {
+        guard let library else { return }
+        run { _ = try library.addVoice(displayName: name, origin: "hostCloned", languageTag: language, rightsNotes: rights,
+                                       referenceWAV: wav, transcript: transcript); self.refreshVoices() }
+    }
 
     // MARK: Jobs
 
-    func createJob(name: String, script: String) {
+    func createJob(name: String, script: String, languageTag: String = "en-GB") {
         guard let library else { return }
-        run { let job = try library.createJob(name: name, script: script); self.open(job.id) }
+        run { let job = try library.createJob(name: name, script: script, languageTag: languageTag); self.open(job.id) }
     }
 
     func open(_ jobID: UUID, selecting takeID: UUID? = nil) {

@@ -40,7 +40,8 @@ struct ResolvedTakeSettings: Codable, Equatable {
     var provenanceNote: String
     var actor: String
     var voiceMasterOrigin: String
-    var renderer: String                    // "none" in Stage 1
+    var renderer: String                    // engine id, or "none"
+    var render: RenderProvenance?
     var job: JobSettings
     var sourceFileName: String?
     var audio: AudioFacts

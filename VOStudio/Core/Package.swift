@@ -7,7 +7,8 @@ let package = Package(
     name: "VOStudioCore",
     platforms: [.macOS(.v26)],
     products: [.library(name: "VOStudioCore", targets: ["VOStudioCore"]),
-               .executable(name: "vostudio-demo", targets: ["vostudio-demo"])],
+               .executable(name: "vostudio-demo", targets: ["vostudio-demo"]),
+               .executable(name: "vostudio-admin", targets: ["vostudio-admin"])],
     dependencies: [
         // GRDB: migrations, transactions, indices and triggers the brief asks for (§3). MIT.
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
@@ -16,10 +17,14 @@ let package = Package(
     targets: [
         .target(name: "VOStudioCore", dependencies: [
             .product(name: "GRDB", package: "GRDB.swift"),
-            .product(name: "BroadcastWave", package: "RendererBench")
+            .product(name: "BroadcastWave", package: "RendererBench"),
+            .product(name: "RendererBenchCore", package: "RendererBench"),
+            .product(name: "Qwen3RendererAdapter", package: "RendererBench")
         ]),
         // Builds a labelled demo/test library (mock tones only) and points the app at it.
         .executableTarget(name: "vostudio-demo", dependencies: ["VOStudioCore"]),
+        // Library admin + real-engine smoke tests (voices, renders) run from the Mac job runner.
+        .executableTarget(name: "vostudio-admin", dependencies: ["VOStudioCore"]),
         .testTarget(name: "VOStudioCoreTests", dependencies: ["VOStudioCore",
             .product(name: "BroadcastWave", package: "RendererBench")])
     ]

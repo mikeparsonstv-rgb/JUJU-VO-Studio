@@ -28,8 +28,8 @@ struct StudioView: View {
             Text(d.job.name).font(.title3.weight(.semibold)).lineLimit(1)
             if let src = d.job.sourceJobID, src != d.job.id { Text("from earlier job").font(.caption).foregroundStyle(.secondary) }
             Spacer()
-            Label("Engineer: not connected (Stage 3)", systemImage: "person.wave.2").font(.caption).foregroundStyle(.secondary)
-                .accessibilityLabel("Engineer not connected. Arrives in Stage 3.")
+            Label(model.engineStatus, systemImage: model.engineReady ? "waveform.circle.fill" : "waveform.circle")
+                .font(.caption).foregroundStyle(.secondary).accessibilityLabel("Voice engine: \(model.engineStatus)")
         }
         .padding(.horizontal, 24).padding(.vertical, 12)
     }
@@ -82,13 +82,15 @@ struct StudioView: View {
                     .frame(height: 220)
             }
             Divider()
+            RenderBar(desk: d)
             HStack {
                 Text("Takes").font(.headline)
                 Spacer()
-                Button { model.addTakeFromWAV() } label: { Label("Add Take from WAV…", systemImage: "square.and.arrow.down") }
-                    .disabled(d.bindings.isEmpty)
-                Button { model.addTake(.mockTone()) } label: { Label("Add Mock Take", systemImage: "tuningfork") }
-                    .disabled(d.bindings.isEmpty).help("Generates a labelled test tone — not a voice, not a render.")
+                Menu {
+                    Button("Add Take from WAV…") { model.addTakeFromWAV() }
+                    Button("Add Mock Tone (test)") { model.addTake(.mockTone()) }
+                } label: { Label("More", systemImage: "ellipsis.circle") }
+                .menuStyle(.borderlessButton).fixedSize().disabled(d.bindings.isEmpty)
             }
             TakesList(desk: d)
         }
@@ -105,6 +107,7 @@ struct StudioView: View {
             Text("\(t.actorDisplayNameSnapshot) · \(t.lineLabel) · Take \(t.perLineTakeNumber) · \(t.productionDate)")
                 .foregroundStyle(.secondary)
             Text(t.segmentTextSnapshot).font(.callout).lineLimit(2)
+            TakeDetails(take: t)
             if d.missingAudio.contains(t.id) {
                 Label("The audio file for this take is missing from the library. The record is intact; restore the file to play or export it.", systemImage: "exclamationmark.triangle")
                     .font(.callout).foregroundStyle(.orange)
@@ -124,22 +127,39 @@ struct StudioView: View {
                         Image(systemName: model.selectedBindingID == b.id ? "largecircle.fill.circle" : "circle")
                         VStack(alignment: .leading) {
                             Text(b.actorDisplayName)
-                            Text("Placeholder voice · no renderer").font(.caption2).foregroundStyle(.secondary)
+                            Text(voiceLine(b)).font(.caption2).foregroundStyle(.secondary)
                         }
                         Spacer()
                     }.contentShape(Rectangle())
                 }.buttonStyle(.plain)
                 .accessibilityLabel("\(b.actorDisplayName), placeholder voice\(model.selectedBindingID == b.id ? ", selected" : "")")
             }
-            HStack {
-                TextField("Actor name", text: $newActor).textFieldStyle(.roundedBorder).onSubmit(cast)
-                Button("Cast", action: cast).disabled(newActor.trimmingCharacters(in: .whitespaces).isEmpty)
+            let castIDs = Set(d.bindings.map(\.voiceMasterID))
+            let uncast = model.voices.filter { !castIDs.contains($0.voice.id) }
+            if !uncast.isEmpty {
+                Text("Voices in the library").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(uncast) { v in
+                    HStack {
+                        Text(v.voice.displayName)
+                        Spacer()
+                        Button("Cast") { model.castVoice(v.voice.id) }.controlSize(.small)
+                    }
+                }
             }
+            Button("Manage Voices…") { model.showVoices = true }.controlSize(.small)
+            DisclosureGroup("Stand-in (no voice)") {
+                HStack {
+                    TextField("Name", text: $newActor).textFieldStyle(.roundedBorder).onSubmit(cast)
+                    Button("Add", action: cast).disabled(newActor.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }.font(.caption)
             Spacer()
-            Text("Stage 1: actors are placeholders and takes are imported WAVs or labelled mock tones. Real voices arrive in Stage 2.")
-                .font(.caption).foregroundStyle(.tertiary)
         }
         .padding(16)
+    }
+    private func voiceLine(_ b: JobActorBinding) -> String {
+        guard let v = model.voices.first(where: { $0.voice.id == b.voiceMasterID }) else { return "Stand-in · no voice" }
+        return "\(v.voice.origin == "hostCloned" ? "Cloned" : v.voice.origin.capitalized) · \(v.voice.languageTag ?? "") · Qwen 0.6B"
     }
     private func cast() { let n = newActor; newActor = ""; if !n.trimmingCharacters(in: .whitespaces).isEmpty { model.addActor(named: n) } }
 }
@@ -262,6 +282,7 @@ struct ProvenanceBadge: View {
         switch provenance {
         case "mockFixture": Badge(text: "MOCK TONE")
         case "importedWAV": Badge(text: "IMPORTED WAV")
+        case "render": Badge(text: "QWEN 0.6B")
         default: Badge(text: provenance.uppercased())
         }
     }
@@ -275,4 +296,86 @@ struct Badge: View {
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.secondary.opacity(0.6)))
             .foregroundStyle(.secondary)
     }
+}
+
+
+struct RenderBar: View {
+    @Environment(AppModel.self) private var model
+    let desk: JobDesk
+    @State private var stress = ""
+
+    private var lineName: String {
+        guard let id = model.selectedSegmentID, let s = desk.segments.first(where: { $0.id == id }) else { return "Full Read" }
+        return "Line \(String(format: "%02d", s.stableLineNumber))"
+    }
+    private var actorName: String { desk.bindings.first { $0.id == model.selectedBindingID }?.actorDisplayName ?? "—" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Button { go(.init()) } label: { Label("Render \(lineName)", systemImage: "waveform.badge.plus") }
+                    .buttonStyle(.borderedProminent).keyboardShortcut("r", modifiers: .command).disabled(!model.canRender)
+                Group {
+                    Button("Again") { go(.init(variation: .fresh, note: "again")) }
+                    Button("Livelier") { go(.init(variation: .livelier, note: "livelier")) }
+                    Button("Steadier") { go(.init(variation: .steadier, note: "steadier")) }
+                }.disabled(!model.canRender)
+                Spacer(minLength: 0)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            HStack(spacing: 8) {
+                TextField("Stress a word (experimental)", text: $stress).textFieldStyle(.roundedBorder).frame(maxWidth: 240)
+                    .onSubmit(stressRender)
+                Button("Render with Stress", action: stressRender).disabled(stress.trimmingCharacters(in: .whitespaces).isEmpty)
+                Spacer(minLength: 0)
+            }
+            .disabled(!model.canRender)
+            if model.selectedActorIsPlaceholder && !desk.bindings.isEmpty {
+                Text("\(actorName) is a stand-in with no voice. Cast a voice to render.").font(.caption).foregroundStyle(.secondary)
+            }
+            ForEach(model.activeRunsForDesk) { r in
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(runLabel(r)).font(.callout)
+                    if let s = r.startedAt { Text(s, style: .timer).font(.caption.monospacedDigit()).foregroundStyle(.secondary) }
+                }
+            }
+            if let n = model.latestRenderNote { Label(n, systemImage: "exclamationmark.triangle").font(.callout).foregroundStyle(.orange) }
+        }
+    }
+
+    private func runLabel(_ r: RenderRun) -> String {
+        let line = desk.segments.first { $0.id == r.segmentID }.map { "Line \(String(format: "%02d", $0.stableLineNumber))" } ?? "Full read"
+        let actor = desk.bindings.first { $0.id == r.actorBindingID }?.actorDisplayName ?? ""
+        return r.state == "queued" ? "Queued — \(line), \(actor)" : "Rendering \(line) — \(actor)…"
+    }
+    private func go(_ d: PerformanceDirection) { Task { await model.render(d) } }
+    private func stressRender() {
+        let w = stress.trimmingCharacters(in: .whitespaces); stress = ""
+        if !w.isEmpty { go(.init(emphasis: w.split(separator: " ").map(String.init), note: "stress \(w)")) }
+    }
+}
+
+struct TakeDetails: View {
+    @Environment(AppModel.self) private var model
+    let take: Take
+    var body: some View {
+        if let snap = try? model.library?.snapshot(for: take), take.provenance == "render",
+           let resolved = try? JSONDecoder().decode(ResolvedView.self, from: Data(snap.resolvedSettingsJSON.utf8)), let r = resolved.render {
+            DisclosureGroup("How this take was made") {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("\(r.engine.displayName) · \(r.engine.modelRevision)")
+                    Text("Voice reference: \(r.referenceLabel) · seed \(r.seed) · \(r.languageTag)")
+                    if r.output.textSent != r.scriptText { Text("Text sent: \(r.output.textSent)") }
+                    ForEach(r.output.controlsApplied, id: \.self) { Text("• \($0)") }
+                    ForEach(r.output.controlsUnsupported, id: \.self) { Text("• Not possible: \($0)").foregroundStyle(.orange) }
+                    if let n = r.postProcessing?.note { Text("• \(n)") }
+                    Text(String(format: "Engine time %.1f s", r.output.engineSeconds))
+                }
+                .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+            }
+            .font(.caption)
+        }
+    }
+    private struct ResolvedView: Decodable { let render: RenderProvenance? }
 }

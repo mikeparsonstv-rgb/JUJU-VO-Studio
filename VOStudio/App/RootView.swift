@@ -36,6 +36,7 @@ struct RootView: View {
         }
         .sheet(isPresented: $model.showNewJob) { NewJobSheet() }
         .sheet(isPresented: $model.showNewFromSettings) { NewFromSettingsSheet() }
+        .sheet(isPresented: $model.showVoices) { VoicesSheet() }
         .sheet(item: $model.recallPrompt) { RecallPromptSheet(prompt: $0) }
         .alert("Something went wrong", isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })) {
             Button("OK", role: .cancel) {}
@@ -156,15 +157,19 @@ struct NewJobSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var script = ""
+    @State private var language = "en-GB"
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("New Job").font(.title3.weight(.semibold))
             TextField("Job name (e.g. Lenor Autumn DE)", text: $name).textFieldStyle(.roundedBorder)
+            Picker("Language", selection: $language) {
+                ForEach(Languages.all, id: \.tag) { Text($0.name).tag($0.tag) }
+            }.fixedSize()
             Text("Script — one line per row; each row becomes Line 01, Line 02…").font(.caption).foregroundStyle(.secondary)
             TextEditor(text: $script).font(.body).frame(minHeight: 180).border(.quaternary)
             HStack { Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }.keyboardShortcut(.cancelAction)
-                Button("Create") { model.createJob(name: name, script: script); dismiss() }
+                Button("Create") { model.createJob(name: name, script: script, languageTag: language); dismiss() }
                     .keyboardShortcut(.defaultAction).disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
@@ -216,6 +221,60 @@ struct RecallPromptSheet: View {
                 }
             }
             HStack { Spacer(); Button("Close") { dismiss() }.keyboardShortcut(.cancelAction) }
+        }
+        .padding(24).frame(width: 520)
+    }
+}
+
+
+enum Languages {
+    struct L { let tag: String; let name: String }
+    /// Locales are distinct choices; dialects are never substituted silently.
+    static let all: [L] = [
+        L(tag: "en-GB", name: "English (UK)"), L(tag: "en-US", name: "English (US)"),
+        L(tag: "de-DE", name: "German (Germany)"), L(tag: "de-AT", name: "German (Austria)"), L(tag: "de-CH", name: "German (Switzerland)"),
+        L(tag: "fr-FR", name: "French (France)"), L(tag: "fr-CH", name: "French (Switzerland)"),
+        L(tag: "es-ES", name: "Spanish (Spain)"), L(tag: "it-IT", name: "Italian")
+    ]
+}
+
+struct VoicesSheet: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var wav: URL?
+    @State private var transcript = ""
+    @State private var language = "en-GB"
+    @State private var rights = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Voices").font(.title3.weight(.semibold))
+            if model.voices.isEmpty { Text("No voices yet.").foregroundStyle(.secondary) }
+            ForEach(model.voices) { v in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(v.voice.displayName).font(.headline)
+                    Text("\(v.voice.origin) · \(v.voice.languageTag ?? "") · \(v.references.count) reference recording\(v.references.count == 1 ? "" : "s")")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text(v.voice.rightsNotes).font(.caption2).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            Divider()
+            Text("Add a voice from a reference recording").font(.headline)
+            TextField("Voice name (as the voice host named it)", text: $name).textFieldStyle(.roundedBorder)
+            HStack {
+                Button(wav == nil ? "Choose Reference WAV…" : wav!.lastPathComponent) {
+                    let p = NSOpenPanel(); p.allowedContentTypes = [.wav]
+                    if p.runModal() == .OK { wav = p.url }
+                }
+                Picker("", selection: $language) { ForEach(Languages.all, id: \.tag) { Text($0.name).tag($0.tag) } }.fixedSize()
+            }
+            TextField("Exact transcript of the reference (improves cloning)", text: $transcript, axis: .vertical).lineLimit(3...6).textFieldStyle(.roundedBorder)
+            TextField("Rights / permission notes", text: $rights).textFieldStyle(.roundedBorder)
+            HStack { Spacer()
+                Button("Close") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Add Voice") { if let wav { model.addVoice(name: name, wav: wav, transcript: transcript, language: language, rights: rights); name = ""; self.wav = nil; transcript = "" } }
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || wav == nil)
+            }
         }
         .padding(24).frame(width: 520)
     }

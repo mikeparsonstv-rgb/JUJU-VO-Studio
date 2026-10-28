@@ -35,6 +35,26 @@ public enum TakeAudioSource: Sendable {
     case importedWAV(URL)
     /// A generated test tone — clearly labelled MOCK, for exercising the desk without any renderer.
     case mockTone(seconds: Double = 1.0, frequency: Double = 440)
+    /// A validated actor-engine render (its temp file is consumed).
+    case rendered(URL, RenderProvenance)
+}
+
+/// Everything about how a rendered take was made — the resolved values actually sent (brief §3).
+public struct RenderProvenance: Codable, Sendable, Equatable {
+    public var runID: UUID
+    public var engine: ActorEngineDescriptor
+    public var rendererProfileID: UUID?
+    public var referenceID: UUID
+    public var referenceLabel: String
+    public var referenceSHA256: String
+    public var referenceTranscriptPresent: Bool
+    public var languageTag: String
+    public var seed: UInt64
+    public var scriptText: String
+    public var output: ActorRenderOutput
+    public var direction: PerformanceDirection
+    public var directionEventID: UUID?
+    public var postProcessing: DigitalSilence.Result?
 }
 
 public struct JobSummary: Sendable, Equatable, Identifiable {
@@ -90,6 +110,7 @@ public enum RecallResolution: Sendable, Equatable {
 public struct RepairReport: Sendable, Equatable {
     public var removedTempFiles: [String] = []
     public var unreferencedTakeFiles: [String] = []   // reported, never deleted
+    public var interruptedRuns = 0
 }
 
 public final class StudioLibrary: Sendable {
@@ -116,7 +137,7 @@ public final class StudioLibrary: Sendable {
 
     // MARK: Jobs
 
-    public func createJob(name: String, script: String) throws -> Job {
+    public func createJob(name: String, script: String, languageTag: String? = nil) throws -> Job {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw LibraryError.emptyJobName }
         let now = clock()
@@ -127,7 +148,7 @@ public final class StudioLibrary: Sendable {
             try job.insert(db)
             let rev = try Self.insertScript(script, jobID: job.id, now: now, db: db)
             let settings = JobSettingsRevision(id: UUID(), jobID: job.id, schemaVersion: JobSettings.schemaVersion,
-                                               canonicalSettingsJSON: JSON.encode(JobSettings()), createdAt: now,
+                                               canonicalSettingsJSON: JSON.encode({ var j = JobSettings(); j.languageTag = languageTag; return j }()), createdAt: now,
                                                sourceJobSettingsRevisionID: nil, authoredBy: "director")
             try settings.insert(db)
             job.currentScriptRevisionID = rev.id; job.currentSettingsRevisionID = settings.id
@@ -260,15 +281,18 @@ public final class StudioLibrary: Sendable {
                 try asset.insert(db)
                 let vm = try VoiceMaster.fetchOne(db, key: binding.voiceMasterID)
                 let jobSettings = (try? JSON.decode(JobSettings.self, settingsRev.canonicalSettingsJSON)) ?? JobSettings()
+                var renderInfo: RenderProvenance?
+                if case .rendered(_, let p) = source { renderInfo = p }
                 let resolved = ResolvedTakeSettings(
                     provenance: provenance, provenanceNote: note, actor: binding.actorDisplayName,
-                    voiceMasterOrigin: vm?.origin ?? "unknown", renderer: "none", job: jobSettings, sourceFileName: sourceName,
+                    voiceMasterOrigin: vm?.origin ?? "unknown", renderer: renderInfo?.engine.id ?? "none", render: renderInfo,
+                    job: jobSettings, sourceFileName: sourceName,
                     audio: .init(sampleRate: asset.sampleRate, bitsPerSample: asset.bitsPerSample, channels: asset.channels,
                                  codec: asset.codec, duration: asset.duration, dataSHA256: dataSHA))
                 let take = Take(id: takeID, jobID: jobID, segmentID: segmentID, lineKey: lineKey, perLineTakeNumber: number,
                                 actorBindingID: actorBindingID, voiceMasterID: binding.voiceMasterID,
                                 actorDisplayNameSnapshot: binding.actorDisplayName,
-                                rendererSnapshotJSON: JSON.encode(["renderer": "none", "provenance": provenance]),
+                                rendererSnapshotJSON: renderInfo.map { JSON.encode($0.engine) } ?? JSON.encode(["renderer": "none", "provenance": provenance]),
                                 scriptRevisionID: revID, segmentTextSnapshot: segmentText, outputAssetID: assetID,
                                 provenance: provenance, status: "accepted", approvalState: "none", approvedAssetID: nil,
                                 approvedScriptRevisionID: nil, approvedAt: nil, canonicalBasename: basename, productionDate: date,
@@ -276,12 +300,24 @@ public final class StudioLibrary: Sendable {
                 try take.insert(db)
                 try TakeSettingsSnapshot(id: snapshotID, takeID: takeID, jobSettingsRevisionID: settingsID,
                                          resolvedSettingsJSON: JSON.encode(resolved), scriptRevisionID: revID,
-                                         voiceMasterID: binding.voiceMasterID, rendererProfileID: nil, engineBuild: nil,
-                                         modelRevision: nil, conditioningJSON: nil, randomSeed: nil,
+                                         voiceMasterID: binding.voiceMasterID, rendererProfileID: renderInfo?.rendererProfileID,
+                                         engineBuild: renderInfo.map { "\($0.engine.id) \($0.engine.adapterVersion)" },
+                                         modelRevision: renderInfo?.engine.modelRevision,
+                                         conditioningJSON: renderInfo.map { JSON.encode(["referenceID": $0.referenceID.uuidString.lowercased(),
+                                                                                          "referenceSHA256": $0.referenceSHA256,
+                                                                                          "referenceLabel": $0.referenceLabel,
+                                                                                          "transcriptPresent": String($0.referenceTranscriptPresent),
+                                                                                          "language": $0.languageTag,
+                                                                                          "textSent": $0.output.textSent]) },
+                                         randomSeed: renderInfo.map { Int64(bitPattern: $0.seed) },
                                          outputFormatJSON: JSON.encode(resolved.audio), appBuild: self.appBuild, createdAt: now).insert(db)
                 job.lastActivityAt = now
                 try job.update(db)
                 try Self.log(db, "takeAdded", job: jobID, take: takeID, now: now, ["name": basename, "provenance": provenance])
+                if let p = renderInfo {
+                    try db.execute(sql: "UPDATE renderRun SET state='succeeded', takeID=?, finishedAt=?, resultJSON=? WHERE id=? AND state='rendering'",
+                                   arguments: [takeID, now, JSON.encode(p.output), p.runID])
+                }
                 return take
             }
         } catch {
@@ -299,6 +335,11 @@ public final class StudioLibrary: Sendable {
         case .mockTone(let seconds, let frequency):
             return (MockTone.wav(seconds: seconds, frequency: frequency), "mockFixture",
                     "MOCK test tone generated by JUJU VO Studio Stage 1 — not a voice, not a render.", nil)
+        case .rendered(let url, let p):
+            let data: Data
+            do { data = try Data(contentsOf: url) } catch { throw LibraryError.audioUnreadable(error.localizedDescription) }
+            return (data, p.engine.isTestFixture ? "mockFixture" : "render",
+                    p.engine.isTestFixture ? "MOCK engine render (test fixture) — not a voice." : "Rendered by \(p.engine.displayName).", nil)
         }
     }
 
@@ -510,7 +551,15 @@ public final class StudioLibrary: Sendable {
         let fm = FileManager.default
         let lib = root.appendingPathComponent("Library")
         let known = Set(try db.read { try String.fetchAll($0, sql: "SELECT relativePath FROM audioAsset") })
+        report.interruptedRuns = try db.write { db in
+            try db.execute(sql: "UPDATE renderRun SET state='interrupted', error='The app closed before this render finished.', finishedAt=? WHERE state IN ('queued','rendering')", arguments: [clock()])
+            return db.changesCount
+        }
         for jobDir in (try? fm.contentsOfDirectory(at: lib, includingPropertiesForKeys: nil)) ?? [] {
+            let renders = jobDir.appendingPathComponent("renders")
+            for f in (try? fm.contentsOfDirectory(atPath: renders.path)) ?? [] {
+                try? fm.removeItem(at: renders.appendingPathComponent(f)); report.removedTempFiles.append("renders/" + f)
+            }
             let takes = jobDir.appendingPathComponent("takes")
             for f in (try? fm.contentsOfDirectory(atPath: takes.path)) ?? [] {
                 if f.hasPrefix(".juju-tmp-") {

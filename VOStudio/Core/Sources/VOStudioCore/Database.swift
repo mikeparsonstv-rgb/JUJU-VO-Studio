@@ -214,6 +214,7 @@ public enum StudioSchema {
                 BEGIN SELECT RAISE(ABORT, 'JUJU: an approval must name an audio asset and a script revision'); END;
                 """)
         }
+        registerStage2(&m)
         return m
     }
 

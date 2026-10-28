@@ -24,8 +24,11 @@ targets:
         SWIFT_VERSION: "6.0"
         MARKETING_VERSION: "0.1.0"
         CURRENT_PROJECT_VERSION: "1"
-        CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: "-"
+        # Stable signature so macOS privacy grants (Documents, microphone, speech) survive rebuilds.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        DEVELOPMENT_TEAM: JWZB85Z7AL
+        OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
         ENABLE_APP_SANDBOX: NO          # Stage 2 launches the local Python workers
         ENABLE_HARDENED_RUNTIME: NO
         GENERATE_INFOPLIST_FILE: NO
@@ -36,6 +39,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationCategoryType: public.app-category.music
+        NSMicrophoneUsageDescription: "JUJU VO Studio listens to your directions for the Engineer while it is connected. Nothing is sent off this Mac."
+        NSSpeechRecognitionUsageDescription: "Your spoken directions are transcribed on this Mac so the Engineer can act on them."
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
         NSHumanReadableCopyright: "© 2026 JUJU VFX. All rights reserved."
         # WAV is an *alternate* document type: JUJU never becomes the default player for audio.
