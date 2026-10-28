@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "local_identity_available; approved_redistributable_reference_still_blocked",
+  "blocker": "No redistributable human reference recording with sufficiently clear provenance and commercial modification/redistribution rights was available. reference-001 is a local-only architecture identity; operators must replace its mapping with a lawfully authorised reference for clone-fidelity work.",
+  "assets": [
+    {
+      "asset_id": "reference-001",
+      "display_name": "Local Engineering Reference 001",
+      "source": "Operator-local architecture reference; audio is not committed",
+      "licence": "Local-only; redistribution not cleared",
+      "redistribution_permitted": false,
+      "language": "en-GB",
+      "speaker_description": "Temporary synthetic macOS system voice used only to exercise renderer architecture",
+      "transcript": "The renderer bench uses this temporary reference sentence to test the voice cloning path.",
+      "sample_rate": 24000,
+      "channels": 1,
+      "duration": 4.78375,
+      "notes": "Not a human clone-fidelity reference. Resolve through gitignored BenchAssets/local-assets.json. Never commit the mapped WAV without a new rights review.",
+      "date_added": "2026-08-08"
+    }
+  ]
+}

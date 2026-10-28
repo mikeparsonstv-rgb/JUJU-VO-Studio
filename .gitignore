@@ -1,0 +1,25 @@
+# JUJU VO Studio — keep evidence, private audio, model weights and envs out of git
+.DS_Store
+.build/
+*.xcuserstate
+xcuserdata/
+DerivedData/
+
+# Private production media and frozen bench evidence (never committed)
+Evidence/**
+!Evidence/frozen-baseline/
+!Evidence/frozen-baseline/*.sha256
+RendererBench/BenchData/
+RendererBench/birmingham 01/
+RendererBench/*.zip
+
+# Isolated Python envs, model caches, analysis envs
+RendererBench/.renderer-envs/
+RendererBench/.renderer-models/
+RendererBench/.analysis-envs/
+RendererBench/.analysis-models/
+**/__pycache__/
+**/.venv/
+
+# Job media library (set in Stage 1)
+Library/

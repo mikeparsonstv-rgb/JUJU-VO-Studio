@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "assets": {
+    "reference-001": {
+      "path": "/absolute/path/to/local-reference.wav"
+    }
+  }
+}

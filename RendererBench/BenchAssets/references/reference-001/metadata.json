@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "asset_id": "reference-001",
+  "display_name": "Local Engineering Reference 001",
+  "language": "en-GB",
+  "speaker_description": "Temporary synthetic macOS system voice used only to exercise renderer architecture",
+  "transcript": "The renderer bench uses this temporary reference sentence to test the voice cloning path.",
+  "rights_status": "local-only architecture fixture; not cleared for redistribution or human clone-fidelity claims",
+  "redistribution_permitted": false,
+  "audio_committed": false,
+  "sample_rate": 24000,
+  "channels": 1,
+  "duration_seconds": 4.78375,
+  "notes": "The WAV is resolved through gitignored BenchAssets/local-assets.json. Replace the mapping with a lawfully authorised human recording before subjective identity scoring."
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "test_id": "C01",
+  "display_name": "Clone / neutral",
+  "purpose": "Baseline clone path for later identity and intelligibility listening comparisons.",
+  "script": "A familiar voice carries more than words. It carries rhythm, character, and the small details that make a performance feel present. This neutral passage tests whether those qualities remain coherent in newly generated speech.",
+  "language": "en-GB",
+  "direction_text": "",
+  "reference_required": true,
+  "notes": "Use the exact same rights-cleared reference audio and transcript for repeatable comparisons."
+}

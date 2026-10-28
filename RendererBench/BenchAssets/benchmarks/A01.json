@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "test_id": "A01",
+  "display_name": "Neutral commercial read",
+  "purpose": "Baseline real speech generation and timing/render throughput.",
+  "script": "Every project begins with a clear idea, but the real difference comes from how confidently you bring it to life. With thoughtful tools, steady support, and a little momentum, the next step feels closer than you think.",
+  "language": "en-GB",
+  "direction_text": "",
+  "reference_required": true,
+  "notes": "Qwen Base uses the supplied reference voice. Keep this copy stable across renderer and backend updates."
+}

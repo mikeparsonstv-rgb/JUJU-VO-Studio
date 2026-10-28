@@ -1,0 +1,17 @@
+.build/
+.swiftpm/
+BenchData/
+.renderer-envs/
+.renderer-models/
+.analysis-envs/
+.analysis-models/
+birmingham 01/
+RB006_Birmingham_Baseline_Pack.zip
+RB006_BIRMINGHAM_ASSETS.json
+BHM01_transcript_candidate.txt
+BHM02_transcript_candidate.txt
+__pycache__/
+*.py[cod]
+BenchAssets/local-assets.json
+BenchAssets/rb006-local-assets.json
+*.xcodeproj/xcuserdata/
