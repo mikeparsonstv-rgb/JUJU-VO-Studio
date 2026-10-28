@@ -1,6 +1,6 @@
 # JUJU VO Studio — Stage 1 Report: persistent native shell + WAV recall
 
-Date: 28 October 2026 · Built by Claude (Opus 5.5) with Mike Parsons · Status: **complete, pending Mike's hands-on Finder/Dock test (§5)**
+Date: 28 October 2026 · Built by Claude (Opus 5.5) with Mike Parsons · Status: **complete** — Mike's hands-on Finder → Dock test passed 28 Oct 21:50 (§5)
 
 Deliverable (BUILD_PLAN): open app → recent jobs → new job (name + script) → takes list → export WAV → quit → open WAV from Finder/Dock → exact take on the desk. **Done and demonstrated on the Mac** (macOS 27.0.1, Xcode 27.1, Swift 6.4). No Engineer, no renderer — by design.
 
@@ -49,7 +49,9 @@ Fixed during the smoke test: the takes row clipped the selected take (now wraps)
 - `timeoutTerminatesAndNextRequestRestarts` (RB003) flaked once under full-suite load (Stage 0 §9); passes on every run since. Left frozen.
 - Take ↔ settings snapshot reference each other; both rows are written in one transaction and only the snapshot side carries a (deferred) foreign key.
 
-## 5. Still for Mike
+## 5. Mike's hands-on test
+
+**Result (28 Oct 2026, 21:50): Mike reports "both work"** — Finder → Dock-icon drag with the app quit and with it running both land on Job A · Line 03 · Take 4 with the welcome banner. In-window drop was not separately reported.
 
 1. **The first-class manual test** (brief §7A.4): with the app **quit**, drag `Evidence/stage1-smoke/Delivered/JobA-Jane-2026-10-28-Line03-Take04.wav` from Finder onto the JUJU VO Studio Dock icon (you may need to right-click the app in the Dock › Options › Keep in Dock first); repeat with the app running; repeat by dropping onto the window. Each should land on Job A · Line 03 · Take 4 with the welcome banner. App: `VOStudio/build/DerivedData/Build/Products/Debug/JUJU VO Studio.app`.
 2. Optional: point the app at a real library folder (Home › Library › Choose Another Library…) and try **Add Take from WAV…** with one of the RB-006 renders.

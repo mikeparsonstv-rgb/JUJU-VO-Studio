@@ -28,7 +28,7 @@ change `RendererBench/Package.swift` platforms; add new library targets there on
 Run STAGE0_AUDIT §7, append results to the audit, commit. Create the private GitHub repo and push. Move
 `RendererBench/BenchAssets/rb006-local-assets.json` to .gitignore first.
 
-## Stage 1 — persistent native shell + WAV recall (no Engineer, no renderer) — DONE 28 Oct (Notes/STAGE1_REPORT.md; Mike's Finder/Dock test outstanding)
+## Stage 1 — persistent native shell + WAV recall (no Engineer, no renderer) — DONE 28 Oct (Notes/STAGE1_REPORT.md; Mike's Finder/Dock test passed)
 
 Deliverable: open app → recent jobs → new job (name + script) → takes list → export WAV → quit → drag WAV on Dock → exact take on the desk.
 
