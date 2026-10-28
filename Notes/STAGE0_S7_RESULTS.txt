@@ -1,0 +1,214 @@
+JUJU VO Studio — Stage 0 §7 results — 2026-10-28 19:42:48 GMT — LUKESTUDIO-2
+
+=== 7.4 Toolchain and OS ===
+ProductName:		macOS
+ProductVersion:		27.0.1
+BuildVersion:		26A434
+Xcode 27.1
+Build version 27A9275
+/Applications/Xcode.app/Contents/Developer
+swift-driver version: 1.168.6 Apple Swift version 6.4 (swiftlang-6.4.0.34.1 clang-2100.3.34.1)
+Target: arm64-apple-macosx27.0.0
+Python 3.14.7
+uv 0.10.9 (f675560f3 2026-03-06)
+arch: arm64
+
+=== 7.1 swift build / swift test — tracked copy (JUJU VO Studio/RendererBench) ===
+[168 / 251] VoxCPM2RendererAdapter
+[178 / 251] voxcpm2-session-bench-product
+[189 / 251] Qwen3RendererAdapter
+[194 / 283]
+[195 / 283]
+[196 / 283]
+[198 / 283]
+[200 / 283]
+[201 / 283]
+[203 / 283]
+[204 / 283]
+[205 / 283]
+[229 / 288] RB006Qualification
+[237 / 288]
+[244 / 288]
+[249 / 288] Qwen3RendererAdapter-product
+[262 / 298]
+[270 / 298] renderer-bench-product
+[280 / 298]
+[281 / 298]
+[283 / 298] rb007-time-repair-product
+[293 / 298] voxcpm2-session-bench-product
+[294 / 298] rb007-time-repair-product
+[296 / 298] rb007-time-repair-product
+Build complete! (11.02 secs)
+swift build exit: 0
+􁁛  Test repeatedWarmRendersKeepUniqueEvidence() passed after 0.229 seconds.
+􁁛  Test threeRunsRemainDistinct() passed after 0.229 seconds.
+􁁛  Test voxcpmWorkerResponseDecoding() passed after 0.228 seconds.
+􁁛  Test voxcpmWorkerRequestEncoding() passed after 0.228 seconds.
+􁁛  Test qwenDescriptorCapabilitySnapshotPersists() passed after 0.229 seconds.
+􁁛  Test targetHumanCannotEnterItsDirectionConditioning() passed after 0.229 seconds.
+􁁛  Test referenceAssetMetadataSerialization() passed after 0.229 seconds.
+􁁛  Test chatterboxNativeSettingsLanguageAndWatermarkPersist() passed after 0.229 seconds.
+􁁛  Test baselinePolicyIsUntunedAndThreeRun() passed after 0.228 seconds.
+􁁛  Test provenanceRecordsOracleAndRB006Identity() passed after 0.229 seconds.
+􁁛  Test voxcpmDescriptorCapabilitySnapshotPersistsTruthfully() passed after 0.229 seconds.
+􁁛  Test chatterboxLegacyV2CannotBeSilentlySelected() passed after 0.229 seconds.
+􁁛  Test comparisonHarnessUsesStableDefinitionsAndLocalIdentity() passed after 0.229 seconds.
+􁁛  Test chatterboxReferenceAssetIDPersists() passed after 0.229 seconds.
+􁁛  Test mockRenderProducesValidWAV() passed after 0.229 seconds.
+􁁛  Test twoQwenRunsDoNotOverwrite() passed after 0.229 seconds.
+􁁛  Test voxcpmLineageMetadataPersists() passed after 0.229 seconds.
+􁁛  Test qwenFailureMapsToPersistedResult() passed after 0.229 seconds.
+􁁛  Test threeRendererIDsShareCanonicalBenchmarkWithoutCollision() passed after 0.229 seconds.
+􁁛  Test chatterboxTimeoutFailsSafely() passed after 0.255 seconds.
+􁁛  Test voxcpmTimeoutFailsSafely() passed after 0.430 seconds.
+􀢄  Test timeoutTerminatesAndNextRequestRestarts() recorded an issue at RB003Tests.swift:165:2: Caught error: .timeout(0.5)
+􀢄  Test timeoutTerminatesAndNextRequestRestarts() failed after 1.070 seconds with 1 issue.
+􁁛  Test voxcpmUnexpectedExitFailsSafely() passed after 1.230 seconds.
+􁁛  Test unexpectedPersistentWorkerExitFailsSafely() passed after 1.230 seconds.
+􁁛  Test chatterboxUnexpectedExitFailsSafely() passed after 1.230 seconds.
+􁁛  Test chatterboxMalformedResponseFailsSafely() passed after 1.230 seconds.
+􁁛  Test voxcpmMalformedResponseFailsSafely() passed after 1.230 seconds.
+􁁛  Test malformedPersistentResponseFailsSafely() passed after 1.230 seconds.
+􁁛  Test chatterboxPersistentStateTransitionsAndLoadState() passed after 1.274 seconds.
+􁁛  Test chatterboxGracefulShutdownTerminatesWorker() passed after 1.274 seconds.
+􁁛  Test gracefulShutdownTerminatesWorker() passed after 1.274 seconds.
+􁁛  Test persistentWorkerStateTransitions() passed after 1.274 seconds.
+􁁛  Test persistentProtocolFramingPreservesRequestIDs() passed after 1.274 seconds.
+􁁛  Test chatterboxPersistentFramingAndRequestIDs() passed after 1.274 seconds.
+􁁛  Test voxcpmGracefulShutdownTerminatesWorker() passed after 1.275 seconds.
+􁁛  Test voxcpmPersistentStateTransitionsAndLoadState() passed after 1.275 seconds.
+􁁛  Test loadThenMultipleRendersDoesNotLogicallyReload() passed after 1.275 seconds.
+􁁛  Test voxcpmPersistentFramingAndRequestIDs() passed after 1.275 seconds.
+􀢄  Test run with 85 tests in 0 suites failed after 1.276 seconds with 1 issue.
+swift test exit: 1  (full output: Notes/.s7_swift_test_full.log, not committed)
+
+=== 7.2 renderer-bench health — original folder (workers + envs live there) ===
+[131 / 144] renderer-bench-product
+[132 / 144] ChatterboxRendererAdapter
+[136 / 144] RendererBenchCore
+[142 / 144] renderer-bench-product
+Build complete! (8.03 secs)
+--- health qwen3
+package_transformers: 4.57.3
+peak_resident_memory_bytes: 213647360
+python_import_seconds: 3.9774535420001484
+python_version: 3.12.13
+qwen_model_id: Qwen/Qwen3-TTS-12Hz-0.6B-Base
+qwen_model_revision: 5d83992436eae1d760afd27aff78a71d676296fc
+qwen_tokenizer_id: Qwen/Qwen3-TTS-Tokenizer-12Hz
+qwen_tokenizer_revision: 7dd38ad4e9bad454aae9cd937d0cd577604fe229
+reference_prompt_reused: false
+render_attemptable: true
+renderer_adapter_version: 1.1.0-rb003
+requested_backend: auto
+tokenizer_available: true
+worker_machine_architecture: arm64
+worker_os_version: macOS-27.0.1-arm64-arm-64bit
+worker_protocol_version: 1
+worker_reused: false
+worker_session_id: 5ea007c6-957c-452b-85ea-dd9c9d949e0d
+worker_startup_seconds: 2.1708001440856606e-05
+worker_state: ready_unloaded
+exit: 0
+--- health voxcpm2
+package_mlx-lm: 0.31.3
+package_transformers: 5.12.1
+peak_resident_memory_bytes: 0
+python_import_seconds: 0.453808583006321
+python_version: 3.12.13
+render_attemptable: true
+renderer_adapter_version: 1.0.0-rb004
+voxcpm2_conversion_model_id: mlx-community/VoxCPM2-bf16
+voxcpm2_conversion_model_revision: a7fb80d9056983135a54ca3f71fcc5a637ccddf5
+voxcpm2_runtime_id: mlx-audio
+voxcpm2_runtime_revision: d28d68c6ac4e28f7d2d66007f640b06cf3fd8ceb
+voxcpm2_upstream_model_id: openbmb/VoxCPM2
+voxcpm2_upstream_model_revision: bffb3df5a29440629464e5e839f4d214c8714c3d
+worker_machine_architecture: arm64
+worker_os_version: macOS-27.0.1-arm64-arm-64bit
+worker_protocol_version: 1
+worker_reused: false
+worker_session_id: 68701f65-dbf0-4d34-b291-48a93ec03b57
+worker_startup_seconds: 2.0707993826363236e-05
+worker_state: ready_unloaded
+exit: 0
+--- health chatterbox
+package_torchaudio: 2.6.0
+package_transformers: 5.2.0
+peak_resident_memory_bytes: 0
+python_import_seconds: 11.756280499997956
+python_version: 3.12.13
+reference_transcript_used: false
+render_attemptable: true
+renderer_adapter_version: 1.0.0-rb005
+requested_backend: mps
+watermark_enabled: false
+watermark_expected: true
+watermark_system: PerTh implicit
+watermark_version: 1.0.1
+worker_machine_architecture: arm64
+worker_os_version: macOS-27.0.1-arm64-arm-64bit
+worker_protocol_version: 1
+worker_reused: false
+worker_session_id: e733d577-0496-4279-b18d-5f4edb410efc
+worker_startup_seconds: 2.0040999515913427e-05
+worker_state: ready_unloaded
+exit: 0
+
+=== 7.x Frozen baseline — RB-006 / RB-007 byte-identical check ===
+RB006-Birmingham-Baseline.sha256: 209 OK, 0 not OK  (root: /Users/editstudio/Documents/CODEX/JUJU VoiceOver/CuePitchBrief/TalkBack_Renderer_Bench_Brief_v0_1/BenchData/qualifications)
+RB007-Timing-Repair.sha256: 98 OK, 0 not OK  (root: /Users/editstudio/Documents/CODEX/JUJU VoiceOver/CuePitchBrief/TalkBack_Renderer_Bench_Brief_v0_1/BenchData/qualifications)
+
+=== 7.3 Voicebox 0.5.0 bundled server ===
+bundle version: 0.5.0
+server binary: /Volumes/EDITBOX-RAID/JUJU LOCAL AI/Apps/Voicebox/Verified/Voicebox.app/Contents/MacOS/voicebox-server
+2026-10-28 19:43:53,701 - __main__ - INFO - ============================================================
+2026-10-28 19:43:53,701 - __main__ - INFO - voicebox-server starting up...
+2026-10-28 19:43:53,701 - __main__ - INFO - Python version: 3.12.10 (v3.12.10:0cc81280367, Apr  8 2025, 08:46:59) [Clang 13.0.0 (clang-1300.0.29.30)]
+2026-10-28 19:43:53,702 - __main__ - INFO - Executable: /Volumes/EDITBOX-RAID/JUJU LOCAL AI/Apps/Voicebox/Verified/Voicebox.app/Contents/MacOS/voicebox-server
+2026-10-28 19:43:53,702 - __main__ - INFO - Arguments: ['/Volumes/EDITBOX-RAID/JUJU LOCAL AI/Apps/Voicebox/Verified/Voicebox.app/Contents/MacOS/voicebox-server', '--help']
+2026-10-28 19:43:53,702 - __main__ - INFO - ============================================================
+2026-10-28 19:43:53,702 - __main__ - INFO - Importing argparse...
+2026-10-28 19:43:53,703 - __main__ - INFO - Importing uvicorn...
+2026-10-28 19:43:54,222 - __main__ - INFO - Standard library imports successful
+2026-10-28 19:43:54,223 - __main__ - INFO - Importing backend.config...
+2026-10-28 19:43:54,224 - __main__ - INFO - Importing backend.database...
+2026-10-28 19:43:54,703 - __main__ - INFO - Importing backend.main (this may take a while due to torch/transformers)...
+2026-10-28 19:44:01,951 - backend.app - INFO - MCP: mounted at /mcp
+2026-10-28 19:44:01,952 - __main__ - INFO - Backend imports successful
+usage: voicebox-server [-h] [--host HOST] [--port PORT] [--data-dir DATA_DIR]
+                       [--parent-pid PARENT_PID] [--version]
+
+voicebox backend server
+
+options:
+  -h, --help            show this help message and exit
+  --host HOST           Host to bind to (use 0.0.0.0 for remote access)
+  --port PORT           Port to bind to
+  --data-dir DATA_DIR   Data directory for database, profiles, and generated
+                        audio
+  --parent-pid PARENT_PID
+                        PID of parent process to monitor; server exits when
+                        parent dies
+  --version             Print version and exit (handled above, kept for
+                        argparse help)
+launch: /Volumes/EDITBOX-RAID/JUJU LOCAL AI/Apps/Voicebox/Verified/Voicebox.app/Contents/MacOS/voicebox-server --port 17499 --data-dir /tmp/juju-vb-s7.P1pa --host 127.0.0.1
+up after ~15s
+--- /health
+{"status":"healthy","model_loaded":false,"model_downloaded":null,"model_size":null,"gpu_available":true,"gpu_type":"MPS (Apple Silicon)","vram_used_mb":null,"backend_type":"mlx","backend_variant":"cpu","gpu_compatibility_warning":null}
+--- /models/status
+{"models":[{"model_name":"qwen-tts-1.7B","display_name":"Qwen TTS 1.7B","hf_repo_id":"mlx-community/Qwen3-TTS-12Hz-1.7B-Base-bf16","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"qwen-tts-0.6B","display_name":"Qwen TTS 0.6B","hf_repo_id":"mlx-community/Qwen3-TTS-12Hz-0.6B-Base-bf16","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"qwen-custom-voice-1.7B","display_name":"Qwen CustomVoice 1.7B","hf_repo_id":"Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"qwen-custom-voice-0.6B","display_name":"Qwen CustomVoice 0.6B","hf_repo_id":"Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"luxtts","display_name":"LuxTTS (Fast, CPU-friendly)","hf_repo_id":"YatharthS/LuxTTS","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"chatterbox-tts","display_name":"Chatterbox TTS (Multilingual)","hf_repo_id":"ResembleAI/chatterbox","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"chatterbox-turbo","display_name":"Chatterbox Turbo (English, Tags)","hf_repo_id":"ResembleAI/chatterbox-turbo","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"tada-1b","display_name":"TADA 1B (English)","hf_repo_id":"HumeAI/tada-1b","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"tada-3b-ml","display_name":"TADA 3B Multilingual","hf_repo_id":"HumeAI/tada-3b-ml","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"kokoro","display_name":"Kokoro 82M","hf_repo_id":"hexgrad/Kokoro-82M","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"whisper-base","display_name":"Whisper Base","hf_repo_id":"openai/whisper-base","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"whisper-small","display_name":"Whisper Small","hf_repo_id":"openai/whisper-small","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"whisper-medium","display_name":"Whisper Medium","hf_repo_id":"openai/whisper-medium","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"whisper-large","display_name":"Whisper Large","hf_repo_id":"openai/whisper-large-v3","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"whisper-turbo","display_name":"Whisper Turbo","hf_repo_id":"openai/whisper-large-v3-turbo","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"qwen3-0.6b","display_name":"Qwen3 0.6B","hf_repo_id":"mlx-community/Qwen3-0.6B-4bit","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"qwen3-1.7b","display_name":"Qwen3 1.7B","hf_repo_id":"mlx-community/Qwen3-1.7B-4bit","downloaded":false,"downloading":false,"size_mb":null,"loaded":false},{"model_name":"qwen3-4b","display_name":"Qwen3 4B","hf_repo_id":"mlx-community/Qwen3-4B-4bit","downloaded":false,"downloading":false,"size_mb":null,"loaded":false}]}
+--- /v1/models (0.6.0 route; 404 expected on 0.5.0)
+404
+server stopped; temp data dir: /tmp/juju-vb-s7.P1pa
+
+=== 7.5 Hugging Face cache inventory (read-only) ===
+cache: /Users/editstudio/.cache/huggingface/hub
+309M	/Users/editstudio/.cache/huggingface/hub/models--facebook--sam2.1-hiera-base-plus
+4.0K	/Users/editstudio/.cache/huggingface/hub/models--geyongtao--gvm
+ 42G	/Users/editstudio/.cache/huggingface/hub/models--mlx-community--Qwen3-Coder-Next-4bit
+ 15G	/Users/editstudio/.cache/huggingface/hub/models--mlx-community--Qwen3.5-27B-4bit
+--- of interest (Qwen TTS any size, Chatterbox, VoxCPM, MOSS, Zonos, Fish, Kokoro, Parakeet, Whisper):
+
+=== done ===
+Log: /Users/editstudio/Documents/CLAUDE_MAY/JUJU VO Studio/Notes/STAGE0_S7_RESULTS.txt

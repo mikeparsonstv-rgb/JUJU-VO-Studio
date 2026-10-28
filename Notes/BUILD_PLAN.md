@@ -76,4 +76,4 @@ RB-012 selective edits. Verify each candidate's repo/licence/Apple path before d
 
 - `TALKBACK_END_GAME.md` and `JUJU_Voice_Director_Performance_Upgrade_Research_Oct2026.md` into `Briefs/`.
 - Listening verdicts on the RB-007 original/repaired pairs (as a note, evidence untouched).
-- GitHub sign-in on the Mac (`gh auth login`) or the repo URL to add as remote.
+- ~~GitHub~~ done: private repo `mikeparsonstv-rgb/JUJU-VO-Studio`, pushed 28 Oct.

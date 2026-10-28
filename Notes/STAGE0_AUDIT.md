@@ -1,6 +1,6 @@
 # JUJU VO Studio — Stage 0 Audit
 
-Date: 28 October 2026 · Author: Claude (Fable 5.1) with Mike Parsons · Status: partial — Mac-side build/test checks outstanding (see §7)
+Date: 28 October 2026 · Author: Claude (Fable 5.1) with Mike Parsons · Status: complete — §7 run on the Mac 28 Oct 2026 19:42 (results in §9)
 
 ## 1. Decisions taken tonight (override the Build 01 brief where they differ)
 
@@ -79,3 +79,23 @@ Mac Studio M1 Ultra, 128 GB (per LOCAL AI handover: macOS 27.0.1, Xcode 27.1). N
 - Voicebox `normalize=true` by default and `crossfade`/chunking alter output — bench-grade renders must disable them and record it.
 - Several of today's "new model" claims rest on one web-research pass; two already failed verification (MLX-Audio 0.6.2; Voicebox 0.6.0 release). Treat the rest as hypotheses.
 - Private-path file `rb006-local-assets.json` is currently tracked — fix before first push.
+
+## 9. §7 results — run on the Mac, 28 Oct 2026 19:42–19:46 (Claude, Opus 5.5, via the repo's job runner)
+
+Raw log: `Notes/STAGE0_S7_RESULTS.txt` (script `Scripts/stage0_section7.sh`).
+
+| Check | Result |
+|---|---|
+| 7.4 Toolchain | macOS **27.0.1** (26A434) · Xcode **27.1** (27A9275) · Apple Swift **6.4** (swiftlang-6.4.0.34.1) · arm64 · system `python3` 3.14.7 (bench envs stay on 3.12.13) · uv 0.10.9 |
+| 7.1 RendererBench (tracked copy) | `swift build` clean under Swift 6.4 — no toolchain drift needing source changes; platform left at `.macOS(.v26)`. `swift test`: **85 tests, 84 passed, 1 failed** on the first run — `timeoutTerminatesAndNextRequestRestarts` (RB003Tests) hit its own 0.5 s timeout on the *restart* request under full-suite parallel load. Isolated re-runs 3/3 pass (0.61–0.66 s); full-suite re-run **85/85 pass**. Classified as a timing flake of a deliberately tight test, not a behaviour change. Test left untouched (frozen); noted as a known flake. |
+| 7.2 `renderer-bench health` (original folder) | **qwen3** healthy (Qwen3-TTS-12Hz-0.6B-Base @5d83992, tokenizer @7dd38ad, transformers 4.57.3, import 4.0 s) · **voxcpm2** healthy (mlx-audio @d28d68c, VoxCPM2-bf16 @a7fb80d, import 0.45 s) · **chatterbox** healthy (MPS, import 11.8 s; `watermark_enabled: false` while `watermark_expected: true` — reported as before, worth re-reading against RB-005 notes). All `ready_unloaded`, exit 0. |
+| Frozen baseline | RB-006 **209/209** and RB-007 **98/98** SHA-256 OK against `Evidence/frozen-baseline/` (root: original `BenchData/qualifications`). Nothing has drifted. |
+| 7.3 Voicebox 0.5.0 bundled server | `voicebox-server` (Python 3.12.10, `--host/--port/--data-dir/--parent-pid`) up in ~15 s on 127.0.0.1:17499 with a temp data dir. `/health`: healthy, `backend_type: mlx`, **`backend_variant: cpu`**, GPU MPS available, no model loaded. `/models/status` lists Qwen TTS 1.7B/0.6B Base (MLX bf16), Qwen CustomVoice 1.7B/0.6B, LuxTTS, Chatterbox multilingual + Turbo, HumeAI TADA 1B/3B-ml, Kokoro 82M, Whisper base→turbo, Qwen3 0.6B/1.7B/4B (4-bit LLMs) — **none downloaded**. `/v1/models` → 404 (as expected for 0.5.0). Server stopped afterwards. |
+| 7.5 Hugging Face cache | `~/.cache/huggingface/hub`: **no TTS/ASR weights** (no Qwen-TTS 1.7B, Chatterbox Turbo, Kokoro, Parakeet, Whisper). Present: `mlx-community/Qwen3.5-27B-4bit` (15 GB), `mlx-community/Qwen3-Coder-Next-4bit` (42 GB), SAM 2.1 (309 MB). `JUJU LOCAL AI/Models/` does not exist yet. |
+
+Consequences:
+- Bench is green on macOS 27 / Xcode 27.1 / Swift 6.4; Stage 1 can depend on `RendererBenchCore` as planned.
+- Any Qwen 1.7B / Chatterbox Turbo trial (RB-009, Stage 5) needs a download first — say so and size it before starting.
+- `Qwen3.5-27B-4bit` already on disk is a free first candidate for the Stage 3 Engineer LLM latency check (alongside a small 4-bit model); nothing to download to run that comparison.
+- Voicebox reporting `backend_variant: cpu` for its MLX backend needs explaining before any Voicebox shootout (Stage 5).
+

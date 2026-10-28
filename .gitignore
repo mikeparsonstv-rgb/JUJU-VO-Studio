@@ -25,3 +25,9 @@ RendererBench/.analysis-models/
 Library/
 
 RendererBench/BenchAssets/rb006-local-assets.json
+
+# Stage 0 §7 scratch logs
+Notes/.s7_*
+
+# Mac job runner queue (local only)
+Runner/
