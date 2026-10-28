@@ -34,3 +34,4 @@ Runner/
 
 # App build output
 VOStudio/build/
+VOStudio/*.xcodeproj/

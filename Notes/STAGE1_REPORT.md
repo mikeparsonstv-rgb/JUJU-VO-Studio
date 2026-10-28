@@ -47,7 +47,7 @@ Fixed during the smoke test: the takes row clipped the selected take (now wraps)
 - Export copies the take's own format; no delivery-format derivatives yet (the data model already supports them: `WAVExport` per rendition).
 - "Search delivered names" is a substring search over saved names, as the brief allows.
 - `timeoutTerminatesAndNextRequestRestarts` (RB003) flaked once under full-suite load (Stage 0 §9); passes on every run since. Left frozen.
-- One unused `takeSettingsSnapshotID` circularity (take ↔ snapshot) is written inside a single transaction; there is no FK on the take side by design.
+- Take ↔ settings snapshot reference each other; both rows are written in one transaction and only the snapshot side carries a (deferred) foreign key.
 
 ## 5. Still for Mike
 
