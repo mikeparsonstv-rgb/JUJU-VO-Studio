@@ -1,0 +1,46 @@
+# JUJU VO Studio — Xcode project spec. Regenerate with:  cd VOStudio && xcodegen generate
+name: JUJU VO Studio
+options:
+  bundleIdPrefix: tv.juju
+  deploymentTarget:
+    macOS: "27.0"
+  createIntermediateGroups: true
+packages:
+  VOStudioCore:
+    path: Core
+targets:
+  JUJUVOStudio:
+    type: application
+    platform: macOS
+    sources: [App]
+    dependencies:
+      - package: VOStudioCore
+        product: VOStudioCore
+    scheme: {}
+    settings:
+      base:
+        PRODUCT_NAME: JUJU VO Studio
+        PRODUCT_BUNDLE_IDENTIFIER: tv.juju.vostudio
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_IDENTITY: "-"
+        ENABLE_APP_SANDBOX: NO          # Stage 2 launches the local Python workers
+        ENABLE_HARDENED_RUNTIME: NO
+        GENERATE_INFOPLIST_FILE: NO
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: JUJU VO Studio
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSApplicationCategoryType: public.app-category.music
+        LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
+        NSHumanReadableCopyright: "© 2026 JUJU VFX. All rights reserved."
+        # WAV is an *alternate* document type: JUJU never becomes the default player for audio.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: WAV audio
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [com.microsoft.waveform-audio]

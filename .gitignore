@@ -31,3 +31,6 @@ Notes/.s7_*
 
 # Mac job runner queue (local only)
 Runner/
+
+# App build output
+VOStudio/build/

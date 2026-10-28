@@ -3,6 +3,8 @@
 Read first: `Briefs/JUJU_VO_Studio_Build_01_Brief_Rev1.1_2026-10-28.md`, then `Notes/STAGE0_AUDIT.md`, then
 `RendererBench/PROJECT_HANDOVER.md` and `RendererBench/KEY_FINDINGS.md`. Decisions in STAGE0_AUDIT §1 override the brief.
 
+Mac job runner: `bash Scripts/mac_runner.sh` in a Terminal; it runs `Runner/inbox/*.sh` one at a time and logs to `Runner/outbox/` (gitignored).
+
 Working rules (from the brief, kept short): additive changes; one vertical slice at a time; working code + passing tests +
 short report + documented limits before the next stage; never a mock labelled as real; never overwrite a take; RB-006/RB-007
 byte-identical (verify with `Evidence/frozen-baseline/*.sha256`); no large model downloads without saying so first.
@@ -21,12 +23,12 @@ JUJU VO Studio/
 `VOStudio` depends on `RendererBench` as a local SwiftPM package (`RendererBenchCore`, `Qwen3RendererAdapter`). Do not
 change `RendererBench/Package.swift` platforms; add new library targets there only when the code is renderer-neutral.
 
-## Stage 0 — finish on the Mac (small)
+## Stage 0 — finish on the Mac (small) — DONE 28 Oct (STAGE0_AUDIT §9)
 
 Run STAGE0_AUDIT §7, append results to the audit, commit. Create the private GitHub repo and push. Move
 `RendererBench/BenchAssets/rb006-local-assets.json` to .gitignore first.
 
-## Stage 1 — persistent native shell + WAV recall (no Engineer, no renderer)
+## Stage 1 — persistent native shell + WAV recall (no Engineer, no renderer) — DONE 28 Oct (Notes/STAGE1_REPORT.md; Mike's Finder/Dock test outstanding)
 
 Deliverable: open app → recent jobs → new job (name + script) → takes list → export WAV → quit → drag WAV on Dock → exact take on the desk.
 

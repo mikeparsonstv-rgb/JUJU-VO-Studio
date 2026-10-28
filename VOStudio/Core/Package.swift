@@ -6,7 +6,8 @@ import PackageDescription
 let package = Package(
     name: "VOStudioCore",
     platforms: [.macOS(.v26)],
-    products: [.library(name: "VOStudioCore", targets: ["VOStudioCore"])],
+    products: [.library(name: "VOStudioCore", targets: ["VOStudioCore"]),
+               .executable(name: "vostudio-demo", targets: ["vostudio-demo"])],
     dependencies: [
         // GRDB: migrations, transactions, indices and triggers the brief asks for (§3). MIT.
         .package(url: "https://github.com/groue/GRDB.swift.git", from: "7.0.0"),
@@ -17,6 +18,8 @@ let package = Package(
             .product(name: "GRDB", package: "GRDB.swift"),
             .product(name: "BroadcastWave", package: "RendererBench")
         ]),
+        // Builds a labelled demo/test library (mock tones only) and points the app at it.
+        .executableTarget(name: "vostudio-demo", dependencies: ["VOStudioCore"]),
         .testTarget(name: "VOStudioCoreTests", dependencies: ["VOStudioCore",
             .product(name: "BroadcastWave", package: "RendererBench")])
     ]
