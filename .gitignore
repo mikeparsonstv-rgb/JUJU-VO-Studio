@@ -35,3 +35,6 @@ Runner/
 # App build output
 VOStudio/build/
 VOStudio/*.xcodeproj/
+
+# Local engine environments (Engineer LLM server)
+Engines/*/.venv/

@@ -48,15 +48,28 @@ public struct ActionOutcome: Equatable, Sendable {
     public var detail: String?
     /// A render that was queued (the Engineer will announce it when it is ready).
     public var queuedRunID: UUID?
-    public init(ok: Bool, say: String? = nil, detail: String? = nil, queuedRunID: UUID? = nil) {
+    /// A take to play once the Engineer has finished speaking (so speech and playback don't overlap).
+    public var playAfterSpeaking: UUID?
+    /// The studio needs one more answer (e.g. a new job's name); the next utterance completes this action.
+    public var needs: String?
+    public init(ok: Bool, say: String? = nil, detail: String? = nil, queuedRunID: UUID? = nil, playAfterSpeaking: UUID? = nil, needs: String? = nil) {
         self.ok = ok; self.say = say; self.detail = detail; self.queuedRunID = queuedRunID
+        self.playAfterSpeaking = playAfterSpeaking; self.needs = needs
     }
 }
 
 /// Compact, factual session state for the interpreter. The model is told only what is true here.
 public struct EngineerContext: Equatable, Sendable, Codable {
-    public struct Line: Equatable, Sendable, Codable { public var number: Int; public var text: String }
-    public struct TakeInfo: Equatable, Sendable, Codable { public var line: String; public var actor: String; public var number: Int; public var approved: Bool; public var selected: Bool }
+    public struct Line: Equatable, Sendable, Codable {
+        public var number: Int; public var text: String
+        public init(number: Int, text: String) { self.number = number; self.text = text }
+    }
+    public struct TakeInfo: Equatable, Sendable, Codable {
+        public var line: String; public var actor: String; public var number: Int; public var approved: Bool; public var selected: Bool
+        public init(line: String, actor: String, number: Int, approved: Bool, selected: Bool) {
+            self.line = line; self.actor = actor; self.number = number; self.approved = approved; self.selected = selected
+        }
+    }
     public var jobName: String?
     public var languageTag: String?
     public var lines: [Line] = []
@@ -106,6 +119,7 @@ public struct EngineerTurn: Equatable, Sendable, Codable {
 public protocol StudioActions: AnyObject {
     var engineerContext: EngineerContext { get }
     func perform(_ action: EngineerAction) async -> ActionOutcome
+    func playTake(_ id: UUID)
 }
 
 /// The Engineer's spoken output. Implementations must return only when speech has finished (or was cut).

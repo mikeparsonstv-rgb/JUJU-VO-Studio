@@ -15,7 +15,11 @@ struct StudioView: View {
                     Divider()
                     centre(d).frame(maxWidth: .infinity)
                     Divider()
-                    castColumn(d).frame(width: 240)
+                    VStack(spacing: 0) {
+                        castColumn(d)
+                        Divider()
+                        EngineerPanel().frame(minHeight: 300)
+                    }.frame(width: 300)
                 }
             }
         }
@@ -378,4 +382,78 @@ struct TakeDetails: View {
         }
     }
     private struct ResolvedView: Decodable { let render: RenderProvenance? }
+}
+
+
+struct EngineerPanel: View {
+    @Environment(AppModel.self) private var model
+    @State private var typed = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Engineer").font(.headline)
+                Spacer()
+                if model.engineerConnected {
+                    Button("Disconnect") { model.disconnectEngineer() }.controlSize(.small)
+                } else {
+                    Button("Connect") { Task { await model.connectEngineer() } }.controlSize(.small).buttonStyle(.borderedProminent)
+                        .keyboardShortcut("k", modifiers: .command)
+                }
+            }
+            if let e = model.engineer, e.isConnected {
+                HStack(spacing: 6) {
+                    Circle().fill(stateColour(e.state)).frame(width: 8, height: 8)
+                    Text(stateText(e.state)).font(.caption)
+                    Spacer()
+                    Text(micText).font(.caption2).foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+                Text("Brain: \(model.llmStatus == "ready" ? model.llm.modelName : "rules only (\(model.llmStatus))") · Voice: \(model.engineerVoice.voiceDescription)")
+                    .font(.caption2).foregroundStyle(.tertiary).lineLimit(2)
+                if !model.micPartial.isEmpty { Text("“\(model.micPartial)”").font(.callout).italic().foregroundStyle(.secondary) }
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(Array(e.log.suffix(40).enumerated()), id: \.offset) { i, t in
+                                turn(t).id(i)
+                            }
+                        }.frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .onChange(of: e.log.count) { _, _ in proxy.scrollTo(min(39, e.log.count - 1), anchor: .bottom) }
+                }
+                HStack(spacing: 6) {
+                    TextField("Type a direction…", text: $typed).textFieldStyle(.roundedBorder).onSubmit(send)
+                    Button("Send", action: send).disabled(typed.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                Text(e.latencySummary).font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
+            } else {
+                Text("Connect to talk to the Engineer. Everything runs on this Mac — speech recognition, the Engineer's brain and its voice. The microphone is only on while connected.")
+                    .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Spacer()
+            }
+        }
+        .padding(16)
+    }
+
+    private func send() { let t = typed; typed = ""; model.typedDirection(t) }
+
+    private var micText: String {
+        switch model.mic.status {
+        case .off: "mic off"; case .starting: "mic starting"; case .listening: model.mic.onDevice ? "mic on · on-device" : "mic on"
+        case .muted: "mic paused"; case .unavailable(let why): why
+        }
+    }
+    private func stateText(_ s: Engineer.State) -> String {
+        switch s { case .disconnected: "Disconnected"; case .listening: "Listening"; case .interpreting: "Thinking"; case .working: "Working"; case .speaking: "Speaking" }
+    }
+    private func stateColour(_ s: Engineer.State) -> Color {
+        switch s { case .listening: .green; case .interpreting, .working: .orange; case .speaking: .blue; case .disconnected: .gray }
+    }
+    @ViewBuilder private func turn(_ t: EngineerTurn) -> some View {
+        switch t.speaker {
+        case .director: Text("You: \(t.text)").font(.callout)
+        case .engineer: Text("Engineer: \(t.text)\(t.latency.map { String(format: "  · %.1f s", $0) } ?? "")").font(.callout).foregroundStyle(.secondary)
+        case .system: Text(t.text).font(.caption2).foregroundStyle(.tertiary)
+        }
+    }
 }

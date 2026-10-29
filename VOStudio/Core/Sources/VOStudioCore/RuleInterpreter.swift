@@ -39,6 +39,12 @@ public struct RuleInterpreter: Sendable {
             return .init(actions: [.stop], source: "rules")
         }
 
+        // Casting talk — looking for a different person, not a different read (brief §1.4).
+        if has(["someone", "somebody", "another (voice|actor|girl|guy|woman|man|bloke|lady)", "different (voice|actor|person)",
+                "(have|do) we (got|have) (a|an|any)", "any other voices?", "who else"]) && Self.actorMention(u, context: context) == nil {
+            return .init(actions: [.castingSearch(raw)], source: "rules")
+        }
+
         let line = Self.lineRef(u)
         let take = Self.takeRef(u)
 

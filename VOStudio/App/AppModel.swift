@@ -47,6 +47,14 @@ final class AppModel {
     var runs: [UUID: RenderRun] = [:]
     var autoPlayNewTakes = true
     var latestRenderNote: String?
+    // Stage 3: the Engineer
+    private(set) var engineer: Engineer?
+    let engineerVoice = SystemEngineerVoice()
+    let mic = DirectorMic()
+    let llm = EngineerLLMServer()
+    var micPartial = ""
+    var llmStatus = "off"
+    var engineerConnected: Bool { engineer?.isConnected == true }
     var isPlaying = false
     private var player: AVAudioPlayer?
     private var playbackStop: Task<Void, Never>?
@@ -107,7 +115,55 @@ final class AppModel {
 
     // MARK: Engines (Stage 2)
 
+    // MARK: Engineer (Stage 3)
+
+    func connectEngineer() async {
+        guard library != nil else { return }
+        if engineer == nil { engineer = Engineer(studio: self, voice: engineerVoice) }
+        guard let e = engineer, !e.isConnected else { return }
+        mic.onPartial = { [weak self] in self?.micPartial = $0 }
+        mic.onUtterance = { [weak self] text, ended in Task { @MainActor in await self?.engineer?.hear(text, endedAt: ended) } }
+        mic.shouldGate = { [weak self] in
+            guard let self else { return true }
+            return self.engineerVoice.isSpeaking || self.isPlaying || self.engineer?.state == .working
+        }
+        let greeting: String
+        if let w = welcome { greeting = w.text }
+        else if let d = desk {
+            let actor = d.bindings.first { $0.id == selectedBindingID }?.actorDisplayName
+            greeting = "Hi, I'm here. We're on \(d.job.name), \(spokenLine)\(actor.map { ", with \($0)" } ?? "")."
+        } else { greeting = "Hi, I'm here. Open a job, or tell me which one." }
+        llmStatus = "starting…"
+        Task {
+            do {
+                try await llm.ensureRunning()
+                let provider = OpenAICompatibleProvider(name: llm.modelName, baseURL: llm.baseURL, timeout: 25)
+                llmStatus = "warming up…"
+                _ = try? await provider.interpret("hello", context: engineerContext, history: [])
+                e.provider = provider
+                llmStatus = "ready"
+            } catch {
+                llmStatus = "unavailable — \(error.localizedDescription)"
+            }
+        }
+        await e.connect(greeting: greeting)
+        Task { await mic.start() }     // permission prompts must never hold up the Engineer (typed direction still works)
+    }
+
+    func disconnectEngineer() {
+        engineer?.disconnect()
+        mic.stop()
+        micPartial = ""
+    }
+
+    func typedDirection(_ text: String) {
+        Task { await engineer?.hear(text) }
+    }
+
     private func startEngines(_ lib: StudioLibrary) {
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.llm.stop(); self?.mic.stop() }
+        }
         let rc = RenderCoordinator(library: lib)
         renderer = rc
         let engine = QwenBenchActorEngine(benchRoot: QwenBenchActorEngine.defaultBenchRoot)
@@ -168,7 +224,12 @@ final class AppModel {
             selectedSegmentID = take.segmentID; selectedBindingID = take.actorBindingID
             select(take: take.id)
             latestRenderNote = nil
-            if autoPlayNewTakes { Task { try? await Task.sleep(for: .milliseconds(250)); self.play() } }
+            Task {
+                let announced = await engineer?.renderFinished(runID: u.run.id, takeID: take.id, error: nil) ?? false
+                if !announced && autoPlayNewTakes { try? await Task.sleep(for: .milliseconds(250)); self.play() }
+            }
+        } else if u.run.state == "failed" {
+            Task { await engineer?.renderFinished(runID: u.run.id, takeID: nil, error: u.run.error) }
         }
         onRenderUpdate?(u)
     }
@@ -350,6 +411,7 @@ final class AppModel {
     func land(on c: RecallCandidate, notes: [String]) {
         open(c.jobID, selecting: c.takeID)
         welcome = Welcome(candidate: c, text: Self.welcomeText(c), notes: notes)
+        if engineerConnected, let w = welcome { Task { await engineer?.say(w.text) } }
     }
 
     static func welcomeText(_ c: RecallCandidate) -> String {
@@ -357,7 +419,7 @@ final class AppModel {
         return "Welcome back. I've got \(c.actorName)'s \(line), take \(spoken(c.takeNumber)), from \(c.jobName). Are we making changes to this today, or doing something new with the same settings?"
     }
 
-    static func spoken(_ n: Int) -> String {
+    nonisolated static func spoken(_ n: Int) -> String {
         let w = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
                  "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"]
         return n >= 0 && n < w.count ? w[n] : String(n)

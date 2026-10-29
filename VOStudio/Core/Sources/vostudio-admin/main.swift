@@ -61,6 +61,39 @@ case "qwen-smoke":
     for r in try lib.renderRuns(jobID: job.id) where r.state != "succeeded" { print("NOT OK run \(r.id): \(r.state) \(r.error ?? "")"); exit(3) }
     await engine.shutdown()
     print("job \(job.id.uuidString.lowercased())")
+case "engineer-eval":
+    // Sends typical director lines to the local LLM (bypassing the rules) and to rules+LLM; reports actions and latency.
+    let url = URL(string: a.count > 3 ? a[3] : "http://127.0.0.1:17860/v1")!
+    let llm = OpenAICompatibleProvider(name: "local", baseURL: url, timeout: 60)
+    var ctx = EngineerContext()
+    ctx.jobName = "Daz Autumn"; ctx.languageTag = "en-GB"; ctx.currentLine = "Line 01"; ctx.currentActor = "Birmingham"
+    ctx.cast = ["Birmingham"]; ctx.voicesInLibrary = ["Birmingham"]; ctx.recentJobs = ["Daz Autumn", "Lenor Germany"]
+    ctx.lines = [.init(number: 1, text: "Today only at our store."), .init(number: 2, text: "Daz gel. It's lusciously thick, giving a brill clean every time."),
+                 .init(number: 3, text: "Daz gel. It's a dose of common sense.")]
+    ctx.takes = [.init(line: "Line 01", actor: "Birmingham", number: 1, approved: false, selected: false),
+                 .init(line: "Line 01", actor: "Birmingham", number: 2, approved: false, selected: true)]
+    let lines = ["Right, let's go for a take", "Lovely. Again, but a bit more fun", "Can she really lean on the word only?",
+                 "Less salesy this time", "Play me the second one", "That's the one", "Let's do line three",
+                 "I want a woman in her early thirties from Manchester", "She's a bit posh, have we got someone more fun?",
+                 "Same girl, a bit less cheerful", "Make it 30 seconds", "Just the last two words, more conviction",
+                 "Can you make it more like this, today ONLY at our store", "Try something completely different",
+                 "Give me a little pause after today", "Go back to the first take", "Export that one", "Who have we got?",
+                 "Open the Lenor Germany job", "How are you doing tonight?", "Can we do the whole thing from the top?",
+                 "Bit slower on line two", "Hmm, not sure about that", "Keep that first sentence"]
+    _ = try? await llm.interpret("warm up", context: ctx, history: [])
+    var times: [Double] = []
+    for l in lines {
+        let t = Date()
+        let ruled = RuleInterpreter().interpret(l, context: ctx)
+        do {
+            let i = try await llm.interpret(l, context: ctx, history: [])
+            let dt = Date().timeIntervalSince(t); times.append(dt)
+            func show(_ x: Interpretation?) -> String { x.map { $0.actions.map { "\($0)" }.joined(separator: " + ") + ($0.reply.map { " say:\"\($0)\"" } ?? "") } ?? "—" }
+            print(String(format: "%5.2fs  %@\n        rules: %@\n        llm:   %@", dt, l, show(ruled), show(i)))
+        } catch { print("ERR \(l): \(error)") }
+    }
+    times.sort()
+    if !times.isEmpty { print(String(format: "LLM latency  p50 %.2f s  p90 %.2f s  max %.2f s  (n=%d)", times[times.count/2], times[Int(Double(times.count-1)*0.9)], times.last!, times.count)) }
 case "use":
     let d = UserDefaults(suiteName: "tv.juju.vostudio")!
     d.set(try root.bookmarkData(), forKey: "libraryRootBookmark"); d.synchronize(); print("JUJU VO Studio now uses \(root.path)")
