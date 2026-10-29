@@ -96,8 +96,10 @@ final class DirectorMic {
         guard status == .off || status == .muted || { if case .unavailable = status { return true } else { return false } }() else { return }
         status = .starting
         let speechOK = await withCheckedContinuation { c in SFSpeechRecognizer.requestAuthorization { c.resume(returning: $0 == .authorized) } }
+        guard status == .starting else { return }      // stopped while waiting for permission
         guard speechOK else { status = .unavailable("Speech recognition isn't allowed — System Settings › Privacy › Speech Recognition."); return }
         let micOK = await AVCaptureDevice.requestAccess(for: .audio)
+        guard status == .starting else { return }
         guard micOK else { status = .unavailable("Microphone access isn't allowed — System Settings › Privacy › Microphone."); return }
         guard let r = SFSpeechRecognizer(locale: locale), r.isAvailable else { status = .unavailable("Speech recognition isn't available for \(locale.identifier)."); return }
         recognizer = r
@@ -108,16 +110,21 @@ final class DirectorMic {
         let tap = self.tap
         input.removeTap(onBus: 0)
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in tap.feed(buffer) }
+        tapInstalled = true
         do { engine.prepare(); try engine.start() } catch { status = .unavailable("Couldn't start the microphone: \(error.localizedDescription)"); return }
         beginTask()
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in Task { @MainActor in self?.tick() } }
         status = gated ? .muted : .listening
     }
 
+    private var tapInstalled = false
+
     func stop() {
         timer?.invalidate(); timer = nil
         task?.cancel(); task = nil; tap.set(nil)
-        engine.inputNode.removeTap(onBus: 0)
+        // Never touch inputNode unless we installed a tap: creating it lazily while a permission prompt is
+        // pending deadlocks AVAudioEngine (seen on quit, 29 Oct).
+        if tapInstalled { engine.inputNode.removeTap(onBus: 0); tapInstalled = false }
         if engine.isRunning { engine.stop() }
         partial = ""; status = .off
     }

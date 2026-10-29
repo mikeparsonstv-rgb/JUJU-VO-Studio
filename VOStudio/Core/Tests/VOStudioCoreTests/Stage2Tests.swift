@@ -177,3 +177,31 @@ private func setUp() async throws -> (StudioLibrary, RenderCoordinator, Job, Job
     let quiet = dir.appendingPathComponent("q.wav"); try MockTone.wav(seconds: 1, frequency: 300).write(to: quiet)
     #expect(try DigitalSilence.trimTrailingZeros(at: quiet).trimmedSeconds == 0)
 }
+
+@Test func broadcastExportIsARecordedDerivativeThatStillRecallsTheTake() async throws {
+    let (l, rc, job, binding, _) = try await setUp()
+    try await rc.enqueue(jobID: job.id, actorBindingID: binding.id, segmentID: nil, engineID: "mock")
+    await rc.drain()
+    let take = try l.desk(job.id).takes[0]
+    let out = l.root.appendingPathComponent("Delivered")
+    let native = try l.exportTake(take.id, to: out, format: .native)
+    let bc = try l.exportTake(take.id, to: out, format: .broadcast48k24)    // mock is 48k/24 already → no conversion needed
+    #expect(native.conversionNote == nil && bc.deliveryFormat == "broadcast48k24" && bc.conversionNote == nil)
+    // A 24 kHz / 16-bit source (Qwen's native format) must be converted and the conversion recorded.
+    let src = l.root.appendingPathComponent("q.wav")
+    var body = Data("WAVE".utf8)
+    let fmt = WAVFormat.canonicalChunk(sampleRate: 24_000, channels: 1, bitsPerSample: 16)
+    var pcm = Data(); for i in 0..<24_000 { var v = Int16(sin(Double(i) * 0.05) * 8000).littleEndian; pcm.append(Data(bytes: &v, count: 2)) }
+    for (id, c) in [("fmt ", fmt), ("data", pcm)] { body.append(contentsOf: Array(id.utf8)); var n = UInt32(c.count); body.append(Data(bytes: &n, count: 4)); body.append(c) }
+    var wav = Data("RIFF".utf8); var n = UInt32(body.count); wav.append(Data(bytes: &n, count: 4)); wav.append(body); try wav.write(to: src)
+    let job2 = try l.createJob(name: "Q", script: "x")
+    let b2 = try l.cast(voiceMasterID: try l.voices()[0].voice.id, into: job2.id)
+    let t2 = try l.addTake(jobID: job2.id, actorBindingID: b2.id, segmentID: nil, audio: .importedWAV(src))
+    let e = try l.exportTake(t2.id, to: out, format: .broadcast48k24)
+    #expect(e.sampleRate == 48_000 && e.bitDepth == 24 && e.conversionNote?.contains("24000 Hz → 48000 Hz") == true)
+    let parsed = try WAVReader.load(contentsOf: out.appendingPathComponent(e.exportedName)).file
+    #expect(abs(parsed.duration - 1.0) < 0.01)                                                // timing unchanged
+    #expect(parsed.juju.identifiers == JUJURecallIdentifiers(jobID: job2.id, takeID: t2.id, exportID: e.id))
+    if case .found(let c, .metadata, _) = l.resolve(fileAt: out.appendingPathComponent(e.exportedName)) { #expect(c.takeID == t2.id && c.exportID == e.id) }
+    else { Issue.record("derivative did not recall") }
+}

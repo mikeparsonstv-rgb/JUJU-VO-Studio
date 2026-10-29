@@ -47,14 +47,14 @@ Deliverable: open app → recent jobs → new job (name + script) → takes list
 - Tests: the brief §7A.4 vectors, all model-free.
 - For Stage 1 the "actor" is a placeholder VoiceMaster and the "take" is an imported or mock-labelled WAV — labelled as such.
 
-## Stage 2 — one real actor path (existing Qwen 0.6B)
+## Stage 2 — one real actor path (existing Qwen 0.6B) — DONE 29 Oct (Notes/V1_REPORT.md §2)
 
 `ActorEngineAdapter` protocol (brief §5) wrapping `RendererAdapter`; `QwenBenchActorAdapter` drives the existing persistent
 worker via `PersistentQwenWorkerClient`. Flow: lock actor → render (run ID first) → `AudioFileValidator` → save as take with
 full `TakeSettingsSnapshot` (model rev, tokenizer rev, seed, ref asset IDs + hashes, language, settings) → play → approve.
 Birmingham BHM01 as the first VoiceMaster (private; mapped by local path, not committed). Verify RB-006/007 hashes afterwards.
 
-## Stage 3 — local Engineer
+## Stage 3 — local Engineer — DONE 29 Oct for typed direction; mic built, awaiting permission (Notes/V1_REPORT.md §3)
 
 `ConversationProvider` protocol + `StudioToolDispatcher` (typed tools from brief §4.2) + `SessionStateStore` +
 `AudioCoordinator` (one mic capture, timestamped fan-out to ASR / guide recorder; one playback authority; interruption).

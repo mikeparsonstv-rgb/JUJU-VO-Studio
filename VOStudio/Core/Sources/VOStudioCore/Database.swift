@@ -215,6 +215,7 @@ public enum StudioSchema {
                 """)
         }
         registerStage2(&m)
+        registerStage3(&m)
         return m
     }
 

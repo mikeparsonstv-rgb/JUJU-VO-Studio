@@ -68,7 +68,7 @@ struct StudioView: View {
                         .keyboardShortcut(.space, modifiers: []).disabled(d.missingAudio.contains(t.id))
                     Button { model.toggleApproval() } label: { Label(t.isApproved ? "Approved" : "Approve", systemImage: t.isApproved ? "checkmark.seal.fill" : "checkmark.seal") }
                         .keyboardShortcut("a", modifiers: .command)
-                    Button { model.exportSelected() } label: { Label("Export WAV…", systemImage: "square.and.arrow.up") }
+                    Button { model.exportSelected() } label: { Label("Export 48k/24…", systemImage: "square.and.arrow.up") }
                         .keyboardShortcut("e", modifiers: .command).disabled(d.missingAudio.contains(t.id))
                     Spacer()
                 }
@@ -76,7 +76,7 @@ struct StudioView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Delivered").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         ForEach(exports) { e in
-                            Text("\(e.exportedName) · \(e.sampleRate) Hz · \(e.bitDepth)-bit · \(e.exportedAt.formatted(date: .abbreviated, time: .shortened))")
+                            Text("\(e.exportedName) · \(e.sampleRate) Hz · \(e.bitDepth)-bit\(e.conversionNote != nil ? " (converted)" : "") · \(e.exportedAt.formatted(date: .abbreviated, time: .shortened))")
                                 .font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
                         }
                     }
@@ -91,6 +91,7 @@ struct StudioView: View {
                 Text("Takes").font(.headline)
                 Spacer()
                 Menu {
+                    Button("Export Native WAV (as rendered)…") { model.exportSelected(format: .native) }.disabled(model.selectedTake == nil)
                     Button("Add Take from WAV…") { model.addTakeFromWAV() }
                     Button("Add Mock Tone (test)") { model.addTake(.mockTone()) }
                 } label: { Label("More", systemImage: "ellipsis.circle") }

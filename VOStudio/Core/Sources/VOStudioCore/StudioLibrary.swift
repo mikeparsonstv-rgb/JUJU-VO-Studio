@@ -364,7 +364,7 @@ public final class StudioLibrary: Sendable {
 
     /// Exports a take as BWF with the job/take/export UUIDs, into `folder`. Never overwrites: a clash gets "-2", "-3"….
     @discardableResult
-    public func exportTake(_ takeID: UUID, to folder: URL) throws -> WAVExport {
+    public func exportTake(_ takeID: UUID, to folder: URL, format: DeliveryFormat = .native) throws -> WAVExport {
         let now = clock()
         let (take, asset, job) = try db.read { db -> (Take, AudioAsset, Job) in
             guard let t = try Take.fetchOne(db, key: takeID) else { throw LibraryError.takeNotFound }
@@ -374,6 +374,16 @@ public final class StudioLibrary: Sendable {
         let source = url(for: asset)
         guard FileManager.default.fileExists(atPath: source.path) else { throw LibraryError.originalAudioMissing(asset.relativePath) }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var exportSource = source
+        var conversionNote: String?
+        var tempDerivative: URL?
+        defer { if let t = tempDerivative { try? FileManager.default.removeItem(at: t) } }
+        if format == .broadcast48k24, asset.sampleRate != 48_000 || asset.bitsPerSample != 24 || asset.codec != "pcm" {
+            let t = FileManager.default.temporaryDirectory.appendingPathComponent("juju-derivative-\(UUID().uuidString).wav")
+            do { conversionNote = try DeliveryConverter.broadcast48k24(source: source, dest: t) }
+            catch { throw LibraryError.fileWriteFailed((error as? LocalizedError)?.errorDescription ?? error.localizedDescription) }
+            exportSource = t; tempDerivative = t
+        }
         let exportID = UUID()
         let info = BWFExportInfo(identifiers: .init(jobID: take.jobID, takeID: take.id, exportID: exportID),
                                  project: job.name, scene: CanonicalNaming.lineToken(take.lineKey),
@@ -382,7 +392,7 @@ public final class StudioLibrary: Sendable {
         var receipt: BWFExportReceipt?
         for n in 1...999 {
             if n > 1 { name = "\(take.canonicalBasename)-\(n).wav" }
-            do { receipt = try BWFWriter.export(sourceWAV: source, to: folder.appendingPathComponent(name), info: info); break }
+            do { receipt = try BWFWriter.export(sourceWAV: exportSource, to: folder.appendingPathComponent(name), info: info); break }
             catch BWFWriteError.destinationExists { continue }
         }
         guard let receipt else { throw LibraryError.fileWriteFailed("no free file name in \(folder.path)") }
@@ -391,14 +401,16 @@ public final class StudioLibrary: Sendable {
                                audioDataChecksum: receipt.audioSHA256, exportedAt: now, takeSettingsSnapshotID: take.takeSettingsSnapshotID,
                                metadataSchemaVersion: JUJURecallIdentifiers.currentMetadataVersion,
                                byteFormat: receipt.format.isFloat ? "float" : "pcm", sampleRate: Int(receipt.format.sampleRate),
-                               bitDepth: Int(receipt.format.bitsPerSample), channelCount: Int(receipt.format.channels))
+                               bitDepth: Int(receipt.format.bitsPerSample), channelCount: Int(receipt.format.channels),
+                               deliveryFormat: format.rawValue, conversionNote: conversionNote)
         try db.write { db in
             try export.insert(db)
             try WAVRecallIndexEntry(id: UUID(), jobID: take.jobID, takeID: take.id, wavExportID: exportID,
                                     canonicalExportFilename: name, basenameKey: CanonicalNaming.lookupKey(forFileName: name),
                                     candidateAudioChecksum: receipt.audioSHA256,
                                     metadataVersion: JUJURecallIdentifiers.currentMetadataVersion).insert(db)
-            try Self.log(db, "takeExported", job: take.jobID, take: take.id, now: now, ["name": name, "export": exportID.uuidString.lowercased()])
+            try Self.log(db, "takeExported", job: take.jobID, take: take.id, now: now,
+                         ["name": name, "export": exportID.uuidString.lowercased(), "format": format.rawValue, "conversion": conversionNote ?? "none"])
         }
         return export
     }

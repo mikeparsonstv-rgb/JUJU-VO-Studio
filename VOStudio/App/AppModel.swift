@@ -316,10 +316,10 @@ final class AppModel {
         run { try library.setApproval(takeID: t.id, approved: !t.isApproved); self.reloadDesk() }
     }
 
-    func exportSelected() {
+    func exportSelected(format: DeliveryFormat = .broadcast48k24) {
         guard let library, let t = selectedTake, let d = desk else { return }
         let panel = NSOpenPanel()
-        panel.title = "Export \(t.canonicalBasename).wav"
+        panel.title = "Export \(t.canonicalBasename).wav — \(format.label)"
         panel.prompt = "Export Here"
         panel.canChooseDirectories = true; panel.canChooseFiles = false; panel.canCreateDirectories = true
         let defaultDir = library.root.appendingPathComponent("Exports").appendingPathComponent(CanonicalNaming.token(d.job.name, fallback: "Job"))
@@ -327,7 +327,7 @@ final class AppModel {
         panel.directoryURL = defaultDir
         guard panel.runModal() == .OK, let folder = panel.url else { return }
         run {
-            let e = try library.exportTake(t.id, to: folder)
+            let e = try library.exportTake(t.id, to: folder, format: format)
             self.reloadDesk()
             NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: e.lastKnownPath)])
         }

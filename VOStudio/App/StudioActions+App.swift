@@ -92,8 +92,8 @@ extension AppModel: StudioActions {
             guard let t = resolveTake(ref), let d = desk else { return .init(ok: false, say: "There's no take to export yet.") }
             let folder = library.root.appendingPathComponent("Exports").appendingPathComponent(CanonicalNaming.token(d.job.name, fallback: "Job"))
             do {
-                let e = try library.exportTake(t.id, to: folder); reloadDesk()
-                return .init(ok: true, say: "Exported take \(Speech.number(t.perLineTakeNumber)) to the Exports folder.", detail: e.lastKnownPath)
+                let e = try library.exportTake(t.id, to: folder, format: .broadcast48k24); reloadDesk()
+                return .init(ok: true, say: "Exported take \(Speech.number(t.perLineTakeNumber)) at 48k, 24-bit, to the Exports folder.", detail: e.lastKnownPath)
             } catch { return .init(ok: false, say: "I couldn't export that: \((error as? LocalizedError)?.errorDescription ?? "unknown error").") }
         case .continueJob:
             welcome = nil

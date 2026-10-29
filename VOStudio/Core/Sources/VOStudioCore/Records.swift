@@ -150,6 +150,8 @@ public struct WAVExport: Codable, Sendable, Equatable, StudioRecord, Identifiabl
     public var sampleRate: Int
     public var bitDepth: Int
     public var channelCount: Int
+    public var deliveryFormat: String = "native"
+    public var conversionNote: String?
 }
 
 public struct WAVRecallIndexEntry: Codable, Sendable, Equatable, StudioRecord {

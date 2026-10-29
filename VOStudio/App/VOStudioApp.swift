@@ -33,6 +33,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated { IncomingFiles.shared.receive(urls) }
     }
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
+    private var termSource: DispatchSourceSignal?
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // A plain `kill` (SIGTERM) quits like ⌘Q, so the Engineer's LLM server and the mic are shut down too.
+        signal(SIGTERM, SIG_IGN)
+        let src = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        src.setEventHandler { NSApp.terminate(nil) }
+        src.resume()
+        termSource = src
+    }
 }
 
 @MainActor
